@@ -8,6 +8,7 @@ module Pismo
       # TODO: Memoizations
       title = @doc.match( 
                           [
+                            '.post_header a',                                                 # 37 Signals
                             'div#main-article-info h1',                                       # The Guardian
                             '#pname a',                                                       # Google Code style
                             '.entryheader h1',                                                # Ruby Inside/Kubrick
