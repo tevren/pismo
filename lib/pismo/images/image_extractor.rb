@@ -13,9 +13,9 @@ class ImageExtractor
 
   def initialize(document, raw_document, url, options = {})
     @logger = Logger.new(STDOUT)
-    
+
     @options = options
-    @bad_image_names_regex = ".html|btn|full_toc|.ico|button|twitter.jpg|facebook.jpg|digg.jpg|digg.png|delicious.png|facebook.png|reddit.jpg|doubleclick|diggthis|diggThis|adserver|/ads/|ec.atdmt.com|mediaplex.com|adsatt|view.atdmt"
+    @bad_image_names_regex = ".html|.ico|button|btn|twitter.jpg|facebook.jpg|digg.jpg|digg.png|delicious.png|facebook.png|reddit.jpg|doubleclick|diggthis|diggThis|adserver|/ads/|ec.atdmt.com|mediaplex.com|adsatt|view.atdmt"
     @image = nil
     @images = []
     @raw_doc = raw_document
@@ -70,7 +70,6 @@ class ImageExtractor
     return image ? true : false
   end
 
-
   # checks to see if we were able to find link tags on this page
   def checkForLinkTag
     begin
@@ -108,11 +107,11 @@ class ImageExtractor
     @logger.debug("checkForLargeImages: Checking for large images, found: " + images.size.to_s + " - parent depth: " + parentDepth.to_s + " sibling depth: " + siblingDepth.to_s)
 
     goodImages = filterBadNames(images)
-      
+
     @logger.debug("checkForLargeImages: After filterBadNames we have: " + goodImages.size.to_s)
 
     goodImages = findImagesThatPassByteSizeTest(goodImages)
-    
+
     @logger.debug("checkForLargeImages: After findImagesThatPassByteSizeTest we have: " + goodImages.size.to_s);
 
     imageResults = downloadImagesAndGetResults(goodImages, parentDepth)
@@ -179,7 +178,6 @@ class ImageExtractor
     return goodImages
   end
 
-
   #  * takes a list of image elements and filters out the ones with bad names
   def filterBadNames(images)
     goodImages = []
@@ -203,8 +201,6 @@ class ImageExtractor
     
     return true
   end
-
-
 
   #  * Takes an image path and builds out the absolute path to that image
   #  * using the initial url we crawled so we can find a link to the image if they use relative urls like ../myimage.jpg
@@ -264,10 +260,10 @@ class ImageExtractor
 
       begin
         imageSource = buildImagePath(image["src"])
-        
+
         width, height = FastImage.size(imageSource)
         type = FastImage.type(imageSource)
-        
+
         if (width < min_width)
           @logger.debug(image["src"] + " is too small width: " + width.to_s + " skipping..")
           next
