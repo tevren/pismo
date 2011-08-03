@@ -194,6 +194,7 @@ module Pismo
                   '.entry',
                   '#content p',
                   '#article p',
+                  'p.desc',
                   '.post-body',
                   '.entry-content',
                   '.document_description_short p',    # Scribd
