@@ -116,12 +116,12 @@ class ImageExtractor
 
     imageResults = downloadImagesAndGetResults(goodImages, parentDepth)
 
-    # // pick out the image with the highest score
+    # pick out the image with the highest score
 
     highScoreImage = nil
-    imageResults = imageResults.sort_by{|imageResult| 
-      imageResult.last
-    }
+    imageResults = imageResults.sort do |a,b|
+      b[1] <=> a[1]
+    end
     @images = imageResults
     
     # imageResults.each do |imageResult|      
@@ -160,13 +160,14 @@ class ImageExtractor
   #  loop through all the images and find the ones that have the sufficient bytes to even make them a candidate
   def findImagesThatPassByteSizeTest(images)
     cnt = 0
-    if (cnt > 30)
-      @logger.debug("Abort! they have over 30 images near the top node: ")
-      return goodImages
-    end
-    
+
     goodImages = []
     images.each do |image|
+      if (cnt > 10)
+        @logger.debug("Abort! they have over 10 images near the top node: ")
+        return goodImages
+      end
+
       bytes = getBytesForImage(image["src"])
 
       if ((bytes == 0 || bytes > min_bytes) && bytes < max_bytes)
@@ -253,8 +254,8 @@ class ImageExtractor
     initialArea = 0
 
     images.each do |image|
-      if (cnt > 30)
-        @logger.debug("over 30 images attempted, that's enough for now")
+      if (cnt > 10)
+        @logger.debug("over 10 images attempted, that's enough for now")
         break
       end
 

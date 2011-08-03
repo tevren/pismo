@@ -58,7 +58,7 @@ module Pismo
           next unless block
           block.gsub!(/\n/, '')
 
-          # Ignore blocks that have no tex
+          # Ignore blocks that have no text
           next if has_only_tags?(block)
 
           # Each new block iterated over makes it less likely for it to belong

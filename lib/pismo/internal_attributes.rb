@@ -8,6 +8,7 @@ module Pismo
       # TODO: Memoizations
       title = @doc.match( 
                           [
+                            ['meta[@property="og:title"]', lambda { |el| el.attr('content') }],
                             '.post_header a',                                                 # 37 Signals
                             'div#main-article-info h1',                                       # The Guardian
                             '#pname a',                                                       # Google Code style
@@ -29,7 +30,9 @@ module Pismo
                             '.title h1',                          
                             '.post h2',
                             'h1.title',
+                            'h1.headline',
                             'h2.title',
+                            'h2.headline',
                             '.entry h2 a',
                             '.entry h2',                                                      # Common style
                             '.boite_titre a',
@@ -168,19 +171,7 @@ module Pismo
     def authors
       author(true)
     end
-    
-    
-    # Returns the "description" of the page, usually comes from a meta tag
-    def description
-      @doc.match([
-                  ['meta[@name="description"]', lambda { |el| el.attr('content') }],
-                  ['meta[@name="Description"]', lambda { |el| el.attr('content') }],
-                  ['meta[@name="DESCRIPTION"]', lambda { |el| el.attr('content') }],
-                  'rdf:Description[@name="dc:description"]',
-                  '.description'
-       ])
-    end
-    
+
     # Returns the "lede(s)" or first paragraph(s) of the story/page
     def lede(all = false)
       lede = @doc.match([ 
@@ -223,7 +214,19 @@ module Pismo
     def ledes
       lede(true) rescue []
     end
-    
+
+    # Returns the "description" of the page, usually comes from a meta tag
+    def description
+      description = @doc.match([
+                  ['meta[@name="description"]', lambda { |el| el.attr('content') }],
+                  ['meta[@name="Description"]', lambda { |el| el.attr('content') }],
+                  ['meta[@name="DESCRIPTION"]', lambda { |el| el.attr('content') }],
+                  'rdf:Description[@name="dc:description"]',
+                  '.description'
+       ])
+       description ? description : lede
+    end
+
     # Returns a string containing the first [limit] sentences as determined by the Reader algorithm
     def sentences(limit = 3)
       reader_doc && !reader_doc.sentences.empty? ? reader_doc.sentences(limit).join(' ') : nil
