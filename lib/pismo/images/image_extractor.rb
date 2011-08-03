@@ -73,7 +73,7 @@ class ImageExtractor
   # checks to see if we were able to find link tags on this page
   def checkForLinkTag
     begin
-      meta = doc.css("link[rel~='image_src']")
+      meta = @raw_doc.css("link[rel~='image_src']")
       meta.each do |item|
         next if (item["href"].length < 1) 
 
