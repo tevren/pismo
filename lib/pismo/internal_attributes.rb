@@ -2,7 +2,7 @@ module Pismo
   # Internal attributes are different pieces of data we can extract from a document's content
   module InternalAttributes
     @@phrasie = Phrasie::Extractor.new
-    
+
     # Returns the title of the page/content - attempts to strip site name, etc, if possible
     def title(all = false)
       # TODO: Memoizations
@@ -64,27 +64,26 @@ module Pismo
         return title
       end
     end
-    
+
     def titles
       title(true)
     end
-    
-    
+
     # HTML title
     def html_title
       title = @doc.match('title')
       return unless title
       title
     end
-    
+
     # Return an estimate of when the page/content was created
     # As clients of this library should be doing HTTP retrieval themselves, they can fall to the
     # Last-Updated HTTP header if they so wish. This method is just rough and based on content only.
     def datetime
       # TODO: Clean all this mess up
-      
+
       mo = %r{(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)}i
-      
+
       regexen = [
         /#{mo}\b\s+\d+\D{1,10}\d{4}/i,
         /(on\s+)?\d+\s+#{mo}\s+\D{0,10}\d+/i,
@@ -97,15 +96,15 @@ module Pismo
         /\d{4}[\.\/\-]\d{2}[\.\/\-]\d{2}/,
         /\d{2}[\.\/\-]\d{2}[\.\/\-]\d{4}/
       ]
-      
+
       datetime = 10
-      
+
       regexen.each do |r|
         break if datetime = @doc.to_html[r]
       end
-      
+
       return unless datetime && datetime.length > 4
-      
+
       # Clean up the string for use by Chronic
       datetime.strip!
       datetime.gsub!(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[^\w]*/i, '')
@@ -115,7 +114,7 @@ module Pismo
       datetime.sub!(/(\d+)(th|st|rd)/, '\1')
       Chronic.parse(datetime) || datetime
     end
-    
+
     # Returns the author of the page/content
     def author(all = false)
       author = @doc.match([
@@ -152,7 +151,7 @@ module Pismo
                           ], all)
                           
       return unless author
-    
+
       # Strip off any "By [whoever]" section
       if String === author
         author.sub!(/^(post(ed)?\s)?by\W+/i, '')
@@ -164,10 +163,10 @@ module Pismo
       elsif Array === author
         author.map! { |a| a.sub(/^(post(ed)?\s)?by\W+/i, '') }.uniq!
       end
-      
+
       author
     end
-    
+
     def authors
       author(true)
     end
@@ -210,7 +209,7 @@ module Pismo
         return reader_doc && !reader_doc.sentences(4).empty? ? reader_doc.sentences(4).join(' ') : nil
       end
     end
-    
+
     def ledes
       lede(true) rescue []
     end
@@ -235,18 +234,18 @@ module Pismo
     # Returns any images with absolute URLs in the document
     def images(limit = 3)
       if @options[:image_extractor]
-        extractor = ImageExtractor.new(reader_doc, @doc, @url, {:min_width => (@options[:min_image_width]||100)})
+        extractor = ImageExtractor.new(reader_doc, @doc, @url, {:min_width => (@options[:min_image_width]||100), :min_height => (@options[:min_image_height]||75)})
         images = extractor.getBestImages(limit)
         return images
       else
         reader_doc && !reader_doc.images.empty? ? reader_doc.images(limit) : nil        
       end
     end
-    
+
     def videos(limit = 1)
       reader_doc && !reader_doc.videos.empty? ? reader_doc.videos(limit) : nil
     end
-    
+
     # Returns the "keyword phrases" in the document (not the meta keywords - they're next to useless now)
     def keywords(options = {})
       options = { :limit => 20, :minimum_score => "1%" }.merge(options)      
@@ -254,21 +253,21 @@ module Pismo
       phrases = @@phrasie.phrases(text, :occur => options[:minimum_score]).map{ |phrase, occur, strength| [phrase.downcase, occur] }
       phrases.delete_if{ |phrase, occur| occur < 2 }.sort_by{ |phrase, occur| occur }.reverse.first(options[:limit])
     end
-    
+
     def reader_doc
       @reader_doc ||= Reader::Document.create(@doc.to_s, @options)
     end
-    
+
     # Returns body text as determined by Reader algorithm
     def body
       @body ||= reader_doc.content(true).strip      
     end
-    
+
     # Returns body text as determined by Reader algorithm WITH basic HTML formatting intact
     def html_body
       @html_body ||= reader_doc.content.strip      
     end
-    
+
     # Returns URL to the site's favicon
     def favicon
       url = @doc.match([['link[@rel="fluid-icon"]', lambda { |el| el.attr('href') }],      # Get a Fluid icon if possible..
@@ -277,16 +276,16 @@ module Pismo
       if url && url !~ /^http/ && @url
         url = URI.join(@url , url).to_s
       end
-      
+
       url
     end
-    
+
     # Returns URL(s) of Web feed(s)
     def feed(all = false)
       url = @doc.match([['link[@type="application/rss+xml"]', lambda { |el| el.attr('href') }],
                         ['link[@type="application/atom+xml"]', lambda { |el| el.attr('href') }]], all
       )
-      
+
       if url && String === url && url !~ /^http/ && @url
         url = URI.join(@url , url).to_s
       elsif url && Array === url
@@ -299,10 +298,10 @@ module Pismo
         end
         url.uniq!
       end
-      
+
       url
     end
-    
+
     def feeds
       feed(true)
     end

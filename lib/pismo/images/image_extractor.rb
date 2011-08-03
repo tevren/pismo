@@ -9,7 +9,7 @@ require 'logger'
 #
 class ImageExtractor
 
-  attr_reader :doc, :top_content_candidate, :bad_image_names_regex, :image, :url, :min_width, :min_bytes, :max_bytes, :options, :logger
+  attr_reader :doc, :top_content_candidate, :bad_image_names_regex, :image, :url, :min_width, :min_height, :min_bytes, :max_bytes, :options, :logger
 
   def initialize(document, raw_document, url, options = {})
     @logger = Logger.new(STDOUT)
@@ -22,13 +22,14 @@ class ImageExtractor
     @doc =  Nokogiri::HTML(document.raw_content, nil, 'utf-8')
     @url = url
     @min_width = options[:min_width] || 100
+    @min_height = options[:min_height] || 100
     @top_content_candidate = document.content_at(0)
     @max_bytes = options[:max_bytes] || 15728640
     @min_bytes = options[:min_bytes] || 5000
   end
 
   def getBestImages(limit = 3)
-    @logger.debug("Starting to Look for the Most Relavent Images (min width #{min_width})") 
+    @logger.debug("Starting to Look for the Most Relavent Images (min width: #{min_width}, min height: #{min_height})") 
     checkForLargeImages(top_content_candidate, 0, 0)
     checkForMetaTags
 
@@ -88,8 +89,7 @@ class ImageExtractor
     end
     return image ? true : false
   end
-  
-  
+
   #  * 1. get a list of ALL images from the parent node
   #  * 2. filter out any bad image names that we know of (gifs, ads, etc..)
   #  * 3. do a head request on each file to make sure it meets our bare requirements
@@ -169,6 +169,8 @@ class ImageExtractor
       end
 
       bytes = getBytesForImage(image["src"])
+
+      bytes ||= 0
 
       if ((bytes == 0 || bytes > min_bytes) && bytes < max_bytes)
         @logger.debug("findImagesThatPassByteSizeTest: Found potential image - size: " + bytes.to_s + " src: " + image["src"] )
@@ -263,14 +265,15 @@ class ImageExtractor
         imageSource = buildImagePath(image["src"])
 
         width, height = FastImage.size(imageSource)
-        type = FastImage.type(imageSource)
+        # Unused at the moment
+        # type = FastImage.type(imageSource)
 
-        if (width < min_width)
-          @logger.debug(image["src"] + " is too small width: " + width.to_s + " skipping..")
+        if (width < min_width || height < min_height)
+          @logger.debug(image["src"] + " is too small (width: " + width.to_s + ", height: " + height.to_s + ") skipping..")
           next
         end
 
-        sequenceScore = 1 / cnt
+        sequenceScore = 1 / cnt.to_f
         area = width * height
 
         totalScore = 0
@@ -281,6 +284,7 @@ class ImageExtractor
           # // let's see how many times larger this image is than the inital image
           areaDifference = area / initialArea
           totalScore = sequenceScore * areaDifference
+          @logger.debug("cnt: #{cnt}, areaDifference: #{areaDifference}, sequenceScore: #{sequenceScore}, totalScore: #{totalScore}")
         end
 
         @logger.debug(imageSource + " Area is: " + area.to_s + " sequence score: " + sequenceScore.to_s + " totalScore: " + totalScore.to_s)
