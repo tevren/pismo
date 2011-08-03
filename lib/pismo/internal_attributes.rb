@@ -28,13 +28,13 @@ module Pismo
                             '#main h1.title',
                             '.title h1',                          
                             '.post h2',
+                            'h1.title',
                             'h2.title',
                             '.entry h2 a',
                             '.entry h2',                                                      # Common style
                             '.boite_titre a',
                             ['meta[@name="title"]', lambda { |el| el.attr('content') }],
                             'h1.headermain',
-                            'h1.title',
                             '.mxb h1',                                                        # BBC News
                             '#content h1',
                             '#content h2',
@@ -54,10 +54,10 @@ module Pismo
       
       # If all else fails, go to the HTML title
       if all
-        return [html_title] if !title
+        return [html_title] if !title || title.empty?
         return ([*title] + [html_title]).uniq
       else
-        return html_title if !title
+        return html_title if !title || title.empty?
         return title
       end
     end
