@@ -11,13 +11,14 @@ class ImageExtractor
 
   attr_reader :doc, :top_content_candidate, :bad_image_names_regex, :image, :url, :min_width, :min_bytes, :max_bytes, :options, :logger
 
-  def initialize(document, url, options = {})
+  def initialize(document, raw_document, url, options = {})
     @logger = Logger.new(STDOUT)
     
     @options = options
-    @bad_image_names_regex = ".html|.gif|.ico|button|twitter.jpg|facebook.jpg|digg.jpg|digg.png|delicious.png|facebook.png|reddit.jpg|doubleclick|diggthis|diggThis|adserver|/ads/|ec.atdmt.com|mediaplex.com|adsatt|view.atdmt"
+    @bad_image_names_regex = ".html|btn|full_toc|.ico|button|twitter.jpg|facebook.jpg|digg.jpg|digg.png|delicious.png|facebook.png|reddit.jpg|doubleclick|diggthis|diggThis|adserver|/ads/|ec.atdmt.com|mediaplex.com|adsatt|view.atdmt"
     @image = nil
     @images = []
+    @raw_doc = raw_document
     @doc =  Nokogiri::HTML(document.raw_content, nil, 'utf-8')
     @url = url
     @min_width = options[:min_width] || 100
@@ -28,10 +29,14 @@ class ImageExtractor
 
   def getBestImages(limit = 3)
     @logger.debug("Starting to Look for the Most Relavent Images (min width #{min_width})") 
+    checkForMetaTags
     checkForLargeImages(top_content_candidate, 0, 0)
-    checkForMetaTags unless image
-    
-    return @images[0...limit].map{|i| buildImagePath(i.first['src']) }
+
+    @images = @images[0...limit].map{ |i|
+      i.is_a?(String) ? i : buildImagePath(i.first['src'])
+    }
+
+    return @images
   end
 
   def getBestImage
@@ -39,20 +44,23 @@ class ImageExtractor
   end
 
   def checkForMetaTags
-    return true if (checkForLinkTag || checkForOpenGraphTag)
+    return true if (checkForOpenGraphTag || checkForLinkTag)
 
     @logger.debug("unable to find meta image tag")
     return false
   end
-  
+
   #  checks to see if we were able to find open graph tags on this page
   def checkForOpenGraphTag
     begin
-      meta = doc.css("meta[property~='og:image']")
+      meta = @raw_doc.css("meta[property~='og:image']")
+
       meta.each do |item|
         next if (item["content"].length < 1)
 
         @image = buildImagePath(item["content"])
+        @images << @image
+
         @logger.debug("open graph tag found, using it")
         break
       end
@@ -71,6 +79,8 @@ class ImageExtractor
         next if (item["href"].length < 1) 
 
         @image = buildImagePath(item["href"])
+        @images << @image
+
         @logger.debug("link tag found, using it")
         break
       end
@@ -113,7 +123,7 @@ class ImageExtractor
     imageResults = imageResults.sort_by{|imageResult| 
       imageResult.last
     }
-    @images = imageResults
+    @images = @images | imageResults
     
     # imageResults.each do |imageResult|      
     #   if !highScoreImage
@@ -128,7 +138,7 @@ class ImageExtractor
     
     if (highScoreImage)
       @image = buildImagePath(highScoreImage.first["src"])
-      @logger.debug("High Score Image is: " + buildImagePath(highScoreImage.first["src"]) )
+      @logger.debug("High Score Image is: " + @image)
     else
       @logger.debug("unable to find a large image, going to fall back mode. depth: " + parentDepth.to_s)
 
@@ -147,8 +157,6 @@ class ImageExtractor
       end
     end
   end
-
-
 
   #  loop through all the images and find the ones that have the sufficient bytes to even make them a candidate
   def findImagesThatPassByteSizeTest(images)
