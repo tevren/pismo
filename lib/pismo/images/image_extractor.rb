@@ -29,8 +29,8 @@ class ImageExtractor
 
   def getBestImages(limit = 3)
     @logger.debug("Starting to Look for the Most Relavent Images (min width #{min_width})") 
-    checkForMetaTags
     checkForLargeImages(top_content_candidate, 0, 0)
+    checkForMetaTags
 
     @images = @images[0...limit].map{ |i|
       i.is_a?(String) ? i : buildImagePath(i.first['src'])
@@ -122,7 +122,7 @@ class ImageExtractor
     imageResults = imageResults.sort_by{|imageResult| 
       imageResult.last
     }
-    @images = @images | imageResults
+    @images = imageResults
     
     # imageResults.each do |imageResult|      
     #   if !highScoreImage
