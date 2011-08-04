@@ -14,6 +14,9 @@ class ImageExtractor
   def initialize(document, raw_document, url, options = {})
     @logger = Logger.new(STDOUT)
 
+    # Change to DEBUG for full debugging output
+    @logger.level = Logger::ERROR
+
     @options = options
     @bad_image_names_regex = ".html|.ico|button|btn|twitter.jpg|facebook.jpg|digg.jpg|digg.png|delicious.png|facebook.png|reddit.jpg|doubleclick|diggthis|diggThis|adserver|/ads/|ec.atdmt.com|mediaplex.com|adsatt|view.atdmt"
     @image = nil
@@ -62,7 +65,7 @@ class ImageExtractor
         @image = buildImagePath(item["content"])
         @images << @image
 
-        @logger.debug("open graph tag found, using it")
+        @logger.debug("open graph tag found")
         break
       end
     rescue
@@ -81,7 +84,7 @@ class ImageExtractor
         @image = buildImagePath(item["href"])
         @images << @image
 
-        @logger.debug("link tag found, using it")
+        @logger.debug("link tag found")
         break
       end
     rescue
@@ -123,7 +126,7 @@ class ImageExtractor
       b[1] <=> a[1]
     end
     @images = imageResults
-    
+
     # imageResults.each do |imageResult|      
     #   if !highScoreImage
     #     highScoreImage = imageResult
@@ -134,7 +137,7 @@ class ImageExtractor
     #   end
     # end
     highScoreImage = imageResults.first if imageResults.any?
-    
+
     if (highScoreImage)
       @image = buildImagePath(highScoreImage.first["src"])
       @logger.debug("High Score Image is: " + @image)
