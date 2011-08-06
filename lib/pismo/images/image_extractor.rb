@@ -11,30 +11,46 @@ class ImageExtractor
 
   attr_reader :doc, :top_content_candidate, :bad_image_names_regex, :image, :url, :min_width, :min_height, :min_bytes, :max_bytes, :options, :logger
 
-  def initialize(document, raw_document, url, options = {})
+  def initialize(document, raw_document, url, is_homepage, options = {})
     @logger = Logger.new(STDOUT)
 
     # Change to DEBUG for full debugging output
-    @logger.level = Logger::ERROR
+    @logger.level = Logger::WARN
 
     @options = options
-    @bad_image_names_regex = ".html|.ico|button|btn|twitter.jpg|facebook.jpg|digg.jpg|digg.png|delicious.png|facebook.png|reddit.jpg|doubleclick|diggthis|diggThis|adserver|/ads/|ec.atdmt.com|mediaplex.com|adsatt|view.atdmt"
+    @bad_image_names_regex = "\.html|\.ico|button|btn|twitter.jpg|facebook.jpg|digg.jpg|digg.png|delicious.png|facebook.png|reddit.jpg|doubleclick|diggthis|diggThis|adserver|/ads/|ec.atdmt.com|mediaplex.com|adsatt|view.atdmt|analytics|maps.google.com"
+    @use_meta_image = false
+    @meta_image = nil
+    @meta_images = []
     @image = nil
     @images = []
     @raw_doc = raw_document
     @doc =  Nokogiri::HTML(document.raw_content, nil, 'utf-8')
     @url = url
-    @min_width = options[:min_width] || 100
-    @min_height = options[:min_height] || 100
     @top_content_candidate = document.content_at(0)
-    @max_bytes = options[:max_bytes] || 15728640
+    @is_homepage = is_homepage
+
+    @min_width = options[:min_width] || 100
+    # Tall enough to make sure it's not a typical banner ad
+    @min_height = options[:min_height] || 61
+    @max_bytes = options[:max_bytes] || 300000
     @min_bytes = options[:min_bytes] || 5000
   end
 
   def getBestImages(limit = 3)
-    @logger.debug("Starting to Look for the Most Relavent Images (min width: #{min_width}, min height: #{min_height})") 
-    checkForLargeImages(top_content_candidate, 0, 0)
+    @logger.debug("Starting to Look for the Most Relavent Images (min width: #{min_width}, min height: #{min_height})")
+    search_content = @is_homepage ? @raw_doc : @top_content_candidate
     checkForMetaTags
+    # Use meta image if there was a large enough one
+    unless @use_meta_image
+      checkForLargeImages(search_content, 0, 0)
+    end
+
+    # Use meta images if there were no content images found, even if meta images aren't large enough
+    if @meta_image && !@image
+      @image = @meta_image
+      @images = @meta_images
+    end
 
     @images = @images[0...limit].map{ |i|
       i.is_a?(String) ? i : buildImagePath(i.first['src'])
@@ -62,16 +78,28 @@ class ImageExtractor
       meta.each do |item|
         next if (item["content"].length < 1)
 
-        @image = buildImagePath(item["content"])
-        @images << @image
+        @logger.debug("Open Graph tag found")
 
-        @logger.debug("open graph tag found")
+        # Determine if meta image is large enough to use as the primary image (and don't look further)
+        imageSource = buildImagePath(item["content"])
+        valid_dimensions, width, height = areOKImageDimensions(imageSource)
+
+        # Don't set the primary meta image if it's already been set
+        unless @meta_image
+          if valid_dimensions
+              @logger.debug("Using Open Graph image as primary image")
+              @use_meta_image = true
+          end 
+          @meta_image = imageSource
+        end 
+        @meta_images << @meta_image
+
         break
       end
     rescue
       @logger.debug "Error getting OG tag: #{$!}"
     end
-    return image ? true : false
+    return @meta_image ? true : false
   end
 
   # checks to see if we were able to find link tags on this page
@@ -81,16 +109,28 @@ class ImageExtractor
       meta.each do |item|
         next if (item["href"].length < 1) 
 
-        @image = buildImagePath(item["href"])
-        @images << @image
+        @logger.debug("Open Graph tag found")
 
-        @logger.debug("link tag found")
+        # Determine if meta image is large enough to use as the primary image (and don't look further)
+        imageSource = buildImagePath(item["href"])
+        valid_dimensions, width, height = areOKImageDimensions(imageSource)
+
+        # Don't set the primary meta image if it's already been set
+        unless @meta_image
+          if valid_dimensions
+              @logger.debug("Using Open Graph image as primary image")
+              @use_meta_image = true
+          end 
+          @meta_image = imageSource
+        end 
+        @meta_images << @meta_image
+
         break
       end
     rescue
       @logger.debug "Error getting link tag: #{$!}"
     end
-    return image ? true : false
+    return @meta_image ? true : false
   end
 
   #  * 1. get a list of ALL images from the parent node
@@ -127,15 +167,6 @@ class ImageExtractor
     end
     @images = imageResults
 
-    # imageResults.each do |imageResult|      
-    #   if !highScoreImage
-    #     highScoreImage = imageResult
-    #   else
-    #     if imageResult.last > highScoreImage.last
-    #       highScoreImage = imageResult
-    #     end
-    #   end
-    # end
     highScoreImage = imageResults.first if imageResults.any?
 
     if (highScoreImage)
@@ -158,30 +189,6 @@ class ImageExtractor
         end
       end
     end
-  end
-
-  #  loop through all the images and find the ones that have the sufficient bytes to even make them a candidate
-  def findImagesThatPassByteSizeTest(images)
-    cnt = 0
-
-    goodImages = []
-    images.each do |image|
-      if (cnt > 10)
-        @logger.debug("Abort! they have over 10 images near the top node: ")
-        return goodImages
-      end
-
-      bytes = getBytesForImage(image["src"])
-
-      bytes ||= 0
-
-      if ((bytes == 0 || bytes > min_bytes) && bytes < max_bytes)
-        @logger.debug("findImagesThatPassByteSizeTest: Found potential image - size: " + bytes.to_s + " src: " + image["src"] )
-        goodImages << image
-      end
-      cnt = cnt + 1
-    end
-    return goodImages
   end
 
   #  * takes a list of image elements and filters out the ones with bad names
@@ -218,6 +225,32 @@ class ImageExtractor
     return newSrc
   end
 
+  #  * loop through all the images and find the ones that have the sufficient bytes to even make them a candidate
+  def findImagesThatPassByteSizeTest(images)
+    cnt = 0
+
+    goodImages = []
+    images.each do |image|
+      if (cnt > 10)
+        @logger.debug("Abort! they have over 10 images near the top node: ")
+        return goodImages
+      end
+
+      bytes = getBytesForImage(image["src"])
+
+      bytes ||= 0
+
+      if ((bytes == 0 || bytes > min_bytes) && bytes < max_bytes)
+        cnt = cnt + 1
+
+        @logger.debug("findImagesThatPassByteSizeTest: Found potential image - size: " + bytes.to_s + " src: " + image["src"] )
+        goodImages << image
+      else
+        @logger.debug("File was too small or large: " + image["src"] + " - size: " + bytes.to_s + " src: " + image["src"] )
+      end
+    end
+    return goodImages
+  end
 
   #  * does the HTTP HEAD request to get the image bytes for this images
   def getBytesForImage(src)
@@ -247,6 +280,28 @@ class ImageExtractor
     return bytes
   end
 
+  # * checks image dimensions to make sure they meet the requirements
+  def areOKImageDimensions(image)
+    ok_dimensions = true
+
+    width, height = FastImage.size(image)
+
+    width ||= 0
+    height ||= 0
+
+    if !width || !height
+      @logger.debug("couldn't get image dimensions for " + image + ", skipping..")
+      ok_dimensions = false
+    end
+
+    if (width < min_width || height < min_height)
+      @logger.debug(image + " is too small (width: " + width.to_s + ", height: " + height.to_s + ") skipping..")
+      ok_dimensions = false
+    end
+
+    return ok_dimensions, width, height
+  end
+
   #  * Get real image dimensions using fastimage
   #  * we're going to score the images in the order in which they appear so images higher up will have more importance,
   #  * we'll count the area of the 1st image as a score of 1 and then calculate how much larger or small each image after it is
@@ -259,41 +314,45 @@ class ImageExtractor
     initialArea = 0
 
     images.each do |image|
-      if (cnt > 10)
-        @logger.debug("over 10 images attempted, that's enough for now")
+      if (cnt > 5)
+        @logger.debug("over 5 images attempted, that's enough for now")
         break
       end
 
       begin
         imageSource = buildImagePath(image["src"])
 
-        width, height = FastImage.size(imageSource)
-        # Unused at the moment
-        # type = FastImage.type(imageSource)
+        valid_dimensions, width, height = areOKImageDimensions(imageSource)
 
-        if (width < min_width || height < min_height)
-          @logger.debug(image["src"] + " is too small (width: " + width.to_s + ", height: " + height.to_s + ") skipping..")
+        unless valid_dimensions
           next
-        end
-
-        sequenceScore = 1 / cnt.to_f
-        area = width * height
-
-        totalScore = 0
-        if (initialArea == 0)
-          initialArea = area
-          totalScore = 1
         else
-          # // let's see how many times larger this image is than the inital image
-          areaDifference = area / initialArea
-          totalScore = sequenceScore * areaDifference
-          @logger.debug("cnt: #{cnt}, areaDifference: #{areaDifference}, sequenceScore: #{sequenceScore}, totalScore: #{totalScore}")
+          sequenceScore = 1 / cnt.to_f
+          area = width * height
+
+          totalScore = 0
+          if (initialArea == 0)
+            initialArea = area
+            totalScore = 1
+          else
+            # // let's see how many times larger this image is than the inital image
+            areaDifference = area / initialArea
+            totalScore = sequenceScore * areaDifference
+            @logger.debug("Image stats: cnt: #{cnt}, areaDifference: #{areaDifference}, sequenceScore: #{sequenceScore}, totalScore: #{totalScore}")
+          end
+
+          @logger.debug(imageSource + " Area is: " + area.to_s + " sequence score: " + sequenceScore.to_s + " totalScore: " + totalScore.to_s)
+
+          imageResults << [image, totalScore]
+
+          if totalScore > 1
+            @logger.debug("found an image with a score above 1; halt checking")
+
+            break
+          end
+
+          cnt = cnt + 1
         end
-
-        @logger.debug(imageSource + " Area is: " + area.to_s + " sequence score: " + sequenceScore.to_s + " totalScore: " + totalScore.to_s)
-
-        cnt = cnt + 1
-        imageResults << [image, totalScore]
       rescue
         @logger.debug "Error scoring image #{image['src']} - #{$!}"
       end

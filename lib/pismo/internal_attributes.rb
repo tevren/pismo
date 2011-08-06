@@ -54,13 +54,13 @@ module Pismo
                           ],
                           all
                         )
-      
+
       # If all else fails, go to the HTML title
       if all
         return [html_title] if !title || title.empty?
         return ([*title] + [html_title]).uniq
       else
-        return html_title if !title || title.empty?
+        return html_title if !title || title.empty? || @is_homepage
         return title
       end
     end
@@ -235,7 +235,7 @@ module Pismo
     # Returns any images with absolute URLs in the document
     def images(limit = 3)
       if @options[:image_extractor]
-        extractor = ImageExtractor.new(reader_doc, @doc, @url, {:min_width => (@options[:min_image_width]||100), :min_height => (@options[:min_image_height]||75)})
+        extractor = ImageExtractor.new(reader_doc, @doc, @url, @is_homepage, {:min_width => (@options[:min_image_width]||100), :min_height => (@options[:min_image_height]||75)})
         images = extractor.getBestImages(limit)
         return images
       else
