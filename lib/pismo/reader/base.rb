@@ -8,7 +8,7 @@ module Pismo
       attr_reader :raw_content, :doc, :content_candidates, :options
       
       # Elements to keep for /input/ sanitization
-      OK_ELEMENTS = %w{a td br th tbody table tr div span img strong em b i body html head title p h1 h2 h3 h4 h5 h6 pre code tt ul li ol blockquote font big small section article abbr audio video embed object cite dd dt figure caption sup form dl dt dd center}
+      OK_ELEMENTS = %w{p a td br th tbody table tr div span img strong em b i body html head title p h1 h2 h3 h4 h5 h6 pre code tt ul li ol blockquote font big small section article abbr audio video embed object cite dd dt figure caption sup form dl dt dd center hgroup }
   
       # Build a tree of attributes that are allowed for each element.. doing it this messy way due to how Sanitize works, alas
       OK_ATTRIBUTES = {}
@@ -26,7 +26,7 @@ module Pismo
       # Words that kill a branch dead
       FATAL_WORDS = %w{comments comment bookmarks social links ads related similar footer digg totop metadata sitesub nav sidebar commenting options addcomment leaderboard offscreen job prevlink prevnext navigation reply-link hide hidden sidebox archives vcard}
       
-      META_WORDS = %w{january february march april may june july august september october november december jan feb mar apr may jun jul aug sep oct nov dec st th rd nd comments written posted on at published 2000 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 updated last gmt est pst pdt edt cet cdt cst article feature featured filed under comment comments follow twitter facebook email e-mail register story continue continues reading read inside more page next related response responses respond contact street phone tel email e-mail fax info tags tagged tag thanks credit creative commons copy nbsp lt gt this friend printable version subscribe rss mail follow twitter article via leave}.uniq
+      META_WORDS = %w{january february march april may june july august september october november december jan feb mar apr may jun jul aug sep oct nov dec st th rd nd comments written posted on at published 2000 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 updated last gmt est pst pdt edt cet cdt cst article feature featured filed under comment comments follow twitter facebook email e-mail register story continue continues reading read inside more page next related response responses respond contact street phone tel email e-mail fax info tags tagged tag thanks credit creative commons copy nbsp lt gt this friend printable version subscribe rss mail follow twitter article via leave dateline}.uniq
   
       WONT_CONTAIN_FULL_CONTENT = %w{h1 h2 h3 h4 h5 h6 h6 li ol ul br a img meta cite strong em i b input head small big code title sup sub dd dt}
       COULD_CONTAIN_FULL_CONTENT = %w{body div p table tr td article pre blockquote tbody section}
