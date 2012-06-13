@@ -11,12 +11,13 @@ module Pismo
 
     ATTRIBUTE_METHODS = InternalAttributes.instance_methods + ExternalAttributes.instance_methods
     DEFAULT_OPTIONS = {
-      :image_extractor => false,
+      :image_extractor => true,
       :min_image_width => 100,
     }
 
     include Pismo::InternalAttributes
     include Pismo::ExternalAttributes
+
 
     def initialize(handle, options = {})
       @options = DEFAULT_OPTIONS.merge options
