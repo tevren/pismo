@@ -36,7 +36,6 @@ module Pismo
     @docs[url] ||= Pismo::Document.new(url)
   end
 
-
   # Return stopword list
   def self.stopwords
     @stopwords ||= File.read(File.dirname(__FILE__) + '/pismo/stopwords.txt').split rescue []

@@ -3,6 +3,7 @@ module Pismo
   module InternalAttributes
     @@phrasie = Phrasie::Extractor.new
 
+<<<<<<< HEAD
     MONTHS_REGEX = %r{(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)}i
     DATETIME_REGEXEN = [
       /#{MONTHS_REGEX}\b\s+\d+\D{1,10}\d{4}/i,
@@ -146,6 +147,72 @@ module Pismo
     # Returns the title of the page/content - attempts to strip site name, etc, if possible
     def title
       titles.first
+=======
+    # Returns the title of the page/content - attempts to strip site name, etc, if possible
+    def title(all = false)
+      # TODO: Memoizations
+      title = @doc.match( 
+                          [
+                            ['meta[@property="og:title"]', lambda { |el| el.attr('content') }],
+                            '.post_header a',                                                 # 37 Signals
+                            'div#main-article-info h1',                                       # The Guardian
+                            '#pname a',                                                       # Google Code style
+                            '.entryheader h1',                                                # Ruby Inside/Kubrick
+                            '.entry-title a',                                               # Common Blogger/Blogspot rules
+                            '.post-title a',
+                            '.post_title a',
+                            '.posttitle a',
+                            '.post-header h1',
+                            '.entry-title',
+                            '.post-title',
+                            '.post h1',
+                            '.post h3 a',
+                            'a.datitle',          # Slashdot style
+                            '.posttitle',
+                            '.post_title',
+                            '.pageTitle',
+                            '#main h1.title',
+                            '.title h1',                          
+                            '.post h2',
+                            'h1.title',
+                            'h1.headline',
+                            'h2.title',
+                            'h2.headline',
+                            '.entry h2 a',
+                            '.entry h2',                                                      # Common style
+                            '.boite_titre a',
+                            ['meta[@name="title"]', lambda { |el| el.attr('content') }],
+                            'h1.headermain',
+                            '.mxb h1',                                                        # BBC News
+                            '#content h1',
+                            '#content h2',
+                            '#content h3',
+                            'a[@rel="bookmark"]',
+                            '.products h2',
+                            '.caption h3',
+                            '#main h2',
+                            '#body h1',
+                            '#wrapper h1',
+                            '#page h1',
+                            '.asset-header h1',
+                            '#body_content h2'
+                          ],
+                          all
+                        )
+
+      # If all else fails, go to the HTML title
+      if all
+        return [html_title] if !title || title.empty?
+        return ([*title] + [html_title]).uniq
+      else
+        return html_title if !title || title.empty? || @is_homepage
+        return title
+      end
+    end
+
+    def titles
+      title(true)
+>>>>>>> deplorable/master
     end
 
     # HTML title
@@ -164,10 +231,37 @@ module Pismo
     # Last-Updated HTTP header if they so wish. This method is just rough and based on content only.
 
     def datetime
+<<<<<<< HEAD
       datetime = 10
       DATETIME_REGEXEN.detect {|r| datetime = @doc.to_html[r] }
 
       return unless datetime and datetime.length > 4
+=======
+      # TODO: Clean all this mess up
+
+      mo = %r{(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)}i
+
+      regexen = [
+        /#{mo}\b\s+\d+\D{1,10}\d{4}/i,
+        /(on\s+)?\d+\s+#{mo}\s+\D{0,10}\d+/i,
+        /(on[^\d+]{1,10})\d+(th|st|rd)?.{1,10}#{mo}\b[^\d]{1,10}\d+/i,
+        /\b\d{4}\-\d{2}\-\d{2}\b/i,
+        /\d+(th|st|rd).{1,10}#{mo}\b[^\d]{1,10}\d+/i,
+        /\d+\s+#{mo}\b[^\d]{1,10}\d+/i,
+        /on\s+#{mo}\s+\d+/i,
+        /#{mo}\s+\d+/i,
+        /\d{4}[\.\/\-]\d{2}[\.\/\-]\d{2}/,
+        /\d{2}[\.\/\-]\d{2}[\.\/\-]\d{4}/
+      ]
+
+      datetime = 10
+
+      regexen.each do |r|
+        break if datetime = @doc.to_html[r]
+      end
+
+      return unless datetime && datetime.length > 4
+>>>>>>> deplorable/master
 
       # Clean up the string for use by Chronic
       datetime.strip!
@@ -178,6 +272,7 @@ module Pismo
     end
 
     # Returns the author of the page/content
+<<<<<<< HEAD
     def authors
       @all_authors ||= begin
         @doc.match(AUTHOR_MATCHES).map do |author|
@@ -245,6 +340,119 @@ module Pismo
       ledes.first
     end
 
+=======
+    def author(all = false)
+      author = @doc.match([
+                          '.post-author .fn',
+                          '.wire_author',
+                          '.cnnByline b',
+                          '.editorlink',
+                          '.authors p',
+                          ['meta[@name="author"]', lambda { |el| el.attr('content') }],     # Traditional meta tag style
+                          ['meta[@name="Author"]', lambda { |el| el.attr('content') }],     # CNN style
+                          ['meta[@name="AUTHOR"]', lambda { |el| el.attr('content') }],     # CNN style
+                          '.byline a',                                                      # Ruby Inside style
+                          '.byline',
+                          '.post_subheader_left a',                                         # TechCrunch style
+                          '.byl',                                                           # BBC News style
+                          '.articledata .author a',
+                          '#owners a',                                                      # Google Code style
+                          '.author a',
+                          '.author',
+                          '.auth a',
+                          '.auth',
+                          '.cT-storyDetails h5',                                            # smh.com.au - worth dropping maybe..
+                          ['meta[@name="byl"]', lambda { |el| el.attr('content') }],
+                          '.timestamp a',
+                          '.fn a',
+                          '.fn',
+                          '.byline-author',
+                          '.ArticleAuthor a',
+                          '.blog_meta a',
+                          'cite a',
+                          'cite',
+                          '.contributor_details h4 a',
+                          '.meta a'
+                          ], all)
+                          
+      return unless author
+
+      # Strip off any "By [whoever]" section
+      if String === author
+        author.sub!(/^(post(ed)?\s)?by\W+/i, '')
+        author.tr!('^a-zA-Z 0-9\'', '|')
+        author = author.split(/\|{2,}/).first.to_s
+        author.gsub!(/\s+/, ' ')
+        author.gsub!(/\|/, '')
+        author.strip!
+      elsif Array === author
+        author.map! { |a| a.sub(/^(post(ed)?\s)?by\W+/i, '') }.uniq!
+      end
+
+      author
+    end
+
+    def authors
+      author(true)
+    end
+
+    # Returns the "lede(s)" or first paragraph(s) of the story/page
+    def lede(all = false)
+      lede = @doc.match([ 
+                  '.post-text p',
+                  '#blogpost p',
+                  '.story-teaser',
+                  '.article .body p',
+                  '//div[@class="entrytext"]//p[string-length()>40]',                      # Ruby Inside / Kubrick style
+                  'section p',
+                  '.entry .text p',
+                  '.hentry .content p',
+                  '.entry-content p',
+                  '#wikicontent p',                                                        # Google Code style
+                  '.wikistyle p',                                                          # GitHub style
+                  '//td[@class="storybody"]/p[string-length()>40]',                        # BBC News style
+                  '//div[@class="entry"]//p[string-length()>100]',
+                  # The below is a horrible, horrible way to pluck out lead paras from crappy Blogspot blogs that
+                  # don't use <p> tags..
+                  ['.entry-content', lambda { |el| el.inner_html[/(#{el.inner_text[0..4].strip}.*?)\<br/, 1] }],
+                  ['.entry', lambda { |el| el.inner_html[/(#{el.inner_text[0..4].strip}.*?)\<br/, 1] }],
+                  '.entry',
+                  '#content p',
+                  '#article p',
+                  'p.desc',
+                  '.post-body',
+                  '.entry-content',
+                  '.document_description_short p',    # Scribd
+                  '.single-post p'
+                  ], all)
+
+      # TODO: Improve sentence extraction - this is dire even if it "works for now"
+      if lede && String === lede
+        return (lede[/^(.*?[\.\!\?]\s){1,3}/m] || lede).to_s.strip
+      elsif lede && Array === lede
+        return lede.map { |l| l.to_s[/^(.*?[\.\!\?]\s){1,3}/m].strip || l }.uniq
+      else
+        return reader_doc && !reader_doc.sentences(4).empty? ? reader_doc.sentences(4).join(' ') : nil
+      end
+    end
+
+    def ledes
+      lede(true) rescue []
+    end
+
+    # Returns the "description" of the page, usually comes from a meta tag
+    def description
+      description = @doc.match([
+                  ['meta[@name="description"]', lambda { |el| el.attr('content') }],
+                  ['meta[@name="Description"]', lambda { |el| el.attr('content') }],
+                  ['meta[@name="DESCRIPTION"]', lambda { |el| el.attr('content') }],
+                  'rdf:Description[@name="dc:description"]',
+                  '.description'
+       ])
+       description ? description : lede
+    end
+
+>>>>>>> deplorable/master
     # Returns a string containing the first [limit] sentences as determined by the Reader algorithm
     def sentences(limit = 3)
       reader_doc && !reader_doc.sentences.empty? ? reader_doc.sentences(limit).join(' ') : nil
@@ -253,8 +461,14 @@ module Pismo
     # Returns any images with absolute URLs in the document
     def images(limit = 3)
       if @options[:image_extractor]
+<<<<<<< HEAD
         extractor = ImageExtractor.new reader_doc, @url, :min_width => @options[:min_image_width], :logger => @options[:logger]
         extractor.get_best_images limit
+=======
+        extractor = ImageExtractor.new(reader_doc, @doc, @url, @is_homepage, {:min_width => (@options[:min_image_width]||100), :min_height => (@options[:min_image_height]||75)})
+        images = extractor.getBestImages(limit)
+        return images
+>>>>>>> deplorable/master
       else
         reader_doc && !reader_doc.images.empty? ? reader_doc.images(limit) : nil
       end
@@ -299,6 +513,7 @@ module Pismo
         end
         url
       end
+<<<<<<< HEAD
     end
 
     # Returns URL(s) of Web feed(s)
@@ -320,13 +535,42 @@ module Pismo
                 URI.join(@url, u).to_s
               end
             end.uniq
+=======
+
+      url
+    end
+
+    # Returns URL(s) of Web feed(s)
+    def feed(all = false)
+      url = @doc.match([['link[@type="application/rss+xml"]', lambda { |el| el.attr('href') }],
+                        ['link[@type="application/atom+xml"]', lambda { |el| el.attr('href') }]], all
+      )
+
+      if url && String === url && url !~ /^http/ && @url
+        url = URI.join(@url , url).to_s
+      elsif url && Array === url
+        url.map! do |u|
+          if u !~ /^http/ && @url
+            URI.join(@url, u).to_s
+          else
+            u
+>>>>>>> deplorable/master
           end
         end
       end
+<<<<<<< HEAD
     end
 
     def feed
       feeds.first
+=======
+
+      url
+    end
+
+    def feeds
+      feed(true)
+>>>>>>> deplorable/master
     end
   end
 end
