@@ -261,7 +261,11 @@ module Pismo
         doc = Nokogiri::HTML(content, nil, 'utf-8')
         images = []
         doc.css("img").each do |img|
-          images << img['src']
+          if img['src']
+            images << img['src']
+          elsif img['data-src']
+            images << img['data-src']
+          end
           break if images.length == qty
         end
         images
