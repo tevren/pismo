@@ -3,7 +3,6 @@ module Pismo
   module InternalAttributes
     @@phrasie = Phrasie::Extractor.new
 
-<<<<<<< HEAD
     MONTHS_REGEX = %r{(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)}i
     DATETIME_REGEXEN = [
       /#{MONTHS_REGEX}\b\s+\d+\D{1,10}\d{4}/i,
@@ -181,7 +180,6 @@ module Pismo
     end
 
     # Returns the author of the page/content
-<<<<<<< HEAD
     def authors
       @all_authors ||= begin
         @doc.match(AUTHOR_MATCHES).map do |author|
@@ -304,7 +302,6 @@ module Pismo
         end
         url
       end
-<<<<<<< HEAD
     end
 
     # Returns URL(s) of Web feed(s)
