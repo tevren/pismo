@@ -8,7 +8,7 @@ module Pismo
       attr_reader :raw_content, :doc, :content_candidates, :options
 
       # Elements to keep for /input/ sanitization
-      OK_ELEMENTS = %w{a td br th tbody table tr div span img strong em b i body html head title p h1 h2 h3 h4 h5 h6 pre code tt ul li ol blockquote font big small section article abbr audio video embed object cite dd dt figure caption sup form dl dt dd center}
+      OK_ELEMENTS = %w{iframe a td br th tbody table tr div span img strong em b i body html head title p h1 h2 h3 h4 h5 h6 pre code tt ul li ol blockquote font big small section article abbr audio video embed object cite dd dt figure caption sup form dl dt dd center}
 
       # Build a tree of attributes that are allowed for each element.. doing it this messy way due to how Sanitize works, alas
       OK_ATTRIBUTES = {}
@@ -18,13 +18,13 @@ module Pismo
 
 
       # Words that we'd like to see in class and ID names for "content"
-      GOOD_WORDS = %w{content post blogpost main story body entry text desc asset hentry single entrytext postcontent bodycontent}.uniq
+      GOOD_WORDS = %w{pagination page article article-content article-container articleText expando content post blogpost main story body entry text desc asset hentry single entrytext postcontent bodycontent}.uniq
 
       # Words that indicate crap in general
-      BAD_WORDS = %w{reply metadata options commenting comments comment about footer header outer credit sidebar widget subscribe clearfix date social bookmarks links share video watch excerpt related supplement accessibility offscreen meta title signup blq secondary feedback featured clearfix small job jobs listing listings navigation nav byline addcomment postcomment trackback neighbor ads commentform fbfans login similar thumb link blogroll grid twitter wrapper container nav sitesub printfooter editsection visualclear catlinks hidden toc contentsub caption disqus rss shoutbox sponsor blogcomments}.uniq
+      BAD_WORDS = %w{pager popup pagination agegate ad-break remark foot extra community strycntntrgt disqus_thread cnnShareThisTitle reply metadata options commenting comments comment about footer header outer credit sidebar widget subscribe clearfix date social bookmarks links share video watch excerpt related supplement accessibility offscreen meta title signup blq secondary feedback featured clearfix small job jobs listing listings navigation nav byline addcomment postcomment trackback neighbor ads commentform fbfans login similar thumb link blogroll grid twitter wrapper container nav sitesub printfooter editsection visualclear catlinks hidden toc contentsub caption disqus rss shoutbox sponsor blogcomments}.uniq
 
       # Words that kill a branch dead
-      FATAL_WORDS = %w{comments comment bookmarks social links ads related similar footer digg totop metadata sitesub nav sidebar commenting options addcomment leaderboard offscreen job prevlink prevnext navigation reply-link hide hidden sidebox archives vcard}
+      FATAL_WORDS = %w{sponsor shopping widget tool soutbrain promo shoutbox masthead foot footnote combx com- menu side comments comment bookmarks social links ads related similar footer digg totop metadata sitesub nav sidebar commenting options addcomment leaderboard offscreen job prevlink prevnext navigation reply-link hide hidden sidebox archives vcard}
 
       META_WORDS = %w{january february march april may june july august september october november december jan feb mar apr may jun jul aug sep oct nov dec st th rd nd comments written posted on at published 2000 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 updated last gmt est pst pdt edt cet cdt cst article feature featured filed under comment comments follow twitter facebook email e-mail register story continue continues reading read inside more page next related response responses respond contact street phone tel email e-mail fax info tags tagged tag thanks credit creative commons copy nbsp lt gt this friend printable version subscribe rss mail follow twitter article via leave}.uniq
 
@@ -32,8 +32,8 @@ module Pismo
       COULD_CONTAIN_FULL_CONTENT = %w{body div p table tr td article pre blockquote tbody section}
 
       ## Output sanitization element sets
-      BLOCK_OUTPUT_ELEMENTS = %w{div p h2 h3 h4 h5 h6 li dl pre ul ol blockquote section article audio video cite dd dt figure caption br table tr td thead tbody tfoot embed object}
-      INLINE_OUTPUT_ELEMENTS = %w{a img b strong em i br code sup font small big dd dt}
+      BLOCK_OUTPUT_ELEMENTS = %w{div p h2 h3 h4 h5 h6 li dl pre ul ol blockquote section article audio video cite dd dt figure caption br table tr td thead tbody tfoot embed object iframe}
+      INLINE_OUTPUT_ELEMENTS = %w{a img b strong em i br code sup font small big dd dt iframe embed}
       OUTPUT_ELEMENTS = BLOCK_OUTPUT_ELEMENTS + INLINE_OUTPUT_ELEMENTS
       NON_HEADER_ELEMENTS = %w{p br}
 
@@ -270,9 +270,9 @@ module Pismo
       def videos(qty = 1)
         doc = Nokogiri::HTML(raw_content, nil, 'utf-8')
         videos = []
-        doc.css("embed,object").each do |vid|
+        doc.css("embed,object,iframe").each do |vid|
           vid.attributes.each do |key, value|
-            if (value.to_s.include?('youtube') || value.to_s.include?('vimeo')) && key.to_s.eql?('src')
+            if (value.to_s.include?('youtube') || value.to_s.include?('vimeo') || value.to_s.include?('dailymotion')) && key.to_s.eql?('src')
               videos << vid
             end
           end
