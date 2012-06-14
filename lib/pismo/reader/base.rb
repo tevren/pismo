@@ -8,7 +8,7 @@ module Pismo
       attr_reader :raw_content, :doc, :content_candidates, :options
 
       # Elements to keep for /input/ sanitization
-      OK_ELEMENTS = %w{more hgroup iframe a td br th tbody table tr div span img strong em b i body html head title p h1 h2 h3 h4 h5 h6 pre code tt ul li ol blockquote font big small section article abbr audio video embed object cite dd dt figure caption sup form dl dt dd center}
+      OK_ELEMENTS = %w{article more hgroup iframe a td br th tbody table tr div span img strong em b i body html head title p h1 h2 h3 h4 h5 h6 pre code tt ul li ol blockquote font big small section article abbr audio video embed object cite dd dt figure caption sup form dl dt dd center}
       # Build a tree of attributes that are allowed for each element.. doing it this messy way due to how Sanitize works, alas
       OK_ATTRIBUTES = {}
       OK_CLEAN_ATTRIBUTES = {}
@@ -97,6 +97,7 @@ module Pismo
         @doc = Nokogiri::HTML(@raw_content, nil, 'utf-8')
 
         # Do a pre clean up of elements.
+        @doc.css("script, style").each { |i| i.remove }
         @doc.css("div, span, table, tr, td, pre").each do |el|
           # Any block elements with no child block elements can become paragraphs
           if (BLOCK_OUTPUT_ELEMENTS & el.inner_html.scan(/\<(\w+)/).flatten).empty?
