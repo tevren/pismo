@@ -8,7 +8,7 @@ module Pismo
       attr_reader :raw_content, :doc, :content_candidates, :options
 
       # Elements to keep for /input/ sanitization
-      OK_ELEMENTS = %w{article more hgroup iframe a td br th tbody table tr div span img strong em b i body html head title p h1 h2 h3 h4 h5 h6 pre code tt ul li ol blockquote font big small section article abbr audio video embed object cite dd dt figure caption sup form dl dt dd center}
+      OK_ELEMENTS = %w{more hgroup iframe a td br th tbody table tr div span img strong em b i body html head title p h1 h2 h3 h4 h5 h6 pre code tt ul li ol blockquote font big small section article abbr audio video embed object cite dd dt figure caption sup form dl dt dd center}
       # Build a tree of attributes that are allowed for each element.. doing it this messy way due to how Sanitize works, alas
       OK_ATTRIBUTES = {}
       OK_CLEAN_ATTRIBUTES = {}
@@ -17,7 +17,7 @@ module Pismo
 
 
       # Words that we'd like to see in class and ID names for "content"
-      GOOD_WORDS = %w{node-content mainstory instapaper_body pagination page article article-content article-container articleText expando content post blogpost main story body entry text desc asset hentry single entrytext postcontent bodycontent}.uniq
+      GOOD_WORDS = %w{article-body mainstory instapaper_body pagination page article article-content article-container articleText expando content post blogpost main story body entry text desc asset hentry single entrytext postcontent bodycontent}.uniq
 
       # Words that indicate crap in general
       BAD_WORDS = %w{instapaper_ignore pager popup pagination agegate ad-break remark foot extra community strycntntrgt disqus_thread cnnShareThisTitle reply metadata options commenting comments comment about footer header outer credit sidebar widget subscribe clearfix date social bookmarks links share video watch excerpt related supplement accessibility offscreen meta title signup blq secondary feedback featured clearfix small job jobs listing listings navigation nav byline addcomment postcomment trackback neighbor ads commentform fbfans login similar thumb link blogroll grid twitter wrapper container nav sitesub printfooter editsection visualclear catlinks hidden toc contentsub caption disqus rss shoutbox sponsor blogcomments}.uniq
@@ -25,7 +25,7 @@ module Pismo
       # Words that kill a branch dead
       FATAL_WORDS = %w{ads-inarticle sponsor shopping widget tool promo shoutbox masthead foot footnote combx com- menu side comments comment bookmarks social links ads related similar footer digg totop metadata sitesub nav sidebar commenting options addcomment leaderboard offscreen job prevlink prevnext navigation reply-link hide hidden sidebox archives vcard}
 
-      META_WORDS = %w{dateline january february march april may june july august september october november december jan feb mar apr may jun jul aug sep oct nov dec st th rd nd comments written posted on at published 2000 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 updated last gmt est pst pdt edt cet cdt cst article feature featured filed under comment comments follow twitter facebook email e-mail register story continue continues reading read inside more page next related response responses respond contact street phone tel email e-mail fax info tags tagged tag thanks credit creative commons copy nbsp lt gt this friend printable version subscribe rss mail follow twitter article via leave}.uniq
+      META_WORDS = %w{and shadow dateline january february march april may june july august september october november december jan feb mar apr may jun jul aug sep oct nov dec st th rd nd comments written posted on at published 2000 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 updated last gmt est pst pdt edt cet cdt cst article feature featured filed under comment comments follow twitter facebook email e-mail register story continue continues reading read inside more page next related response responses respond contact street phone tel email e-mail fax info tags tagged tag thanks credit creative commons copy nbsp lt gt this friend printable version subscribe rss mail follow twitter article via leave}.uniq
 
       WONT_CONTAIN_FULL_CONTENT = %w{h1 h2 h3 h4 h5 h6 h6 li ol ul br a img meta cite strong em i b input head small big code title sup sub dd dt}
       COULD_CONTAIN_FULL_CONTENT = %w{body div p table tr td article pre blockquote tbody section}
@@ -74,7 +74,6 @@ module Pismo
 
         # Remove scripts manually, Sanitize and/or Nokogiri seem to go a bit funny with them
         @raw_content.gsub!(/\<script .*?\<\/script\>/im, '')
-
         # Get rid of bullshit "smart" quotes and other Unicode nonsense
         @raw_content.force_encoding("ASCII-8BIT") if RUBY_VERSION > "1.9"
         @raw_content.gsub!("\xe2\x80\x89", " ")
@@ -142,30 +141,30 @@ module Pismo
 
           # Remove elements that contain words but there are more tags than words overall
           # First, count the words
-          #word_count = 0
-          #el.traverse do |subel|
-          #  if subel.text? && subel.path !~ /\/a\// && subel.path !~ /\/(h1|h2|h3|h4|h5|h6)\//
-          #    word_count += (subel.text.downcase.scan(/[a-z]{4,}/) - META_WORDS).size
-          #  end
-          #end
-          #
+          word_count = 0
+          el.traverse do |subel|
+            if subel.text? && subel.path !~ /\/a\// && subel.path !~ /\/(h1|h2|h3|h4|h5|h6)\//
+              word_count += (subel.text.downcase.scan(/[a-z]{4,}/) - META_WORDS).size
+            end
+          end
+          
           ## .. then count the tags
           #
-          #inner_tags = el.inner_html.scan(/\<\w.*?\>/).size
-          #if word_count < inner_tags && inner_tags > 3 && word_count < 250
-          #  puts "At #{el.name} #{el['id']} #{el['class']} containing '#{el.text[0..20]}' we have #{word_count} valid words to #{el.inner_html.scan(/\<\w.*?\>/).size} tags"
-          #  #puts "Removing #{el.name} #{el['id']} #{el['class']} TOO MANY TAGS FOR WORDS"
-          #  el.remove
-          #  next
-          #end
+          inner_tags = el.inner_html.scan(/\<\w.*?\>/).size
+          if word_count < inner_tags && inner_tags > 3 && word_count < 250
+            puts "At #{el.name} #{el['id']} #{el['class']} containing '#{el.text[0..20]}' we have #{word_count} valid words to #{el.inner_html.scan(/\<\w.*?\>/).size} tags"
+            puts "Removing #{el.name} #{el['id']} #{el['class']} TOO MANY TAGS FOR WORDS"
+            el.remove
+            next
+          end
 
           # If there are at least 2 words and a third of them are "meta words," remove the element
-          #inner_words = el.text.to_s.downcase.scan(/[a-z]{3,}/)
-          #if BLOCK_OUTPUT_ELEMENTS.include?(el.name) && inner_words.size >= 2
-          #  if ((inner_words & META_WORDS).size >= (inner_words.size / 3))
-          #    el.remove
-          #  end
-          #end
+          inner_words = el.text.to_s.downcase.scan(/[a-z]{3,}/)
+          if BLOCK_OUTPUT_ELEMENTS.include?(el.name) && inner_words.size >= 2
+            if ((inner_words & META_WORDS).size >= (inner_words.size / 3))
+              el.remove
+            end
+          end
 
           if el.text && el.text.strip.length < 3 && !%w{img}.include?(el.name) && el.inner_html !~ /\<img/
             el.remove
