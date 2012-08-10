@@ -141,30 +141,30 @@ module Pismo
 
           # Remove elements that contain words but there are more tags than words overall
           # First, count the words
-          word_count = 0
-          el.traverse do |subel|
-            if subel.text? && subel.path !~ /\/a\// && subel.path !~ /\/(h1|h2|h3|h4|h5|h6)\//
-              word_count += (subel.text.downcase.scan(/[a-z]{4,}/) - META_WORDS).size
-            end
-          end
-          
+          #word_count = 0
+          #el.traverse do |subel|
+          #  if subel.text? && subel.path !~ /\/a\// && subel.path !~ /\/(h1|h2|h3|h4|h5|h6)\//
+          #    word_count += (subel.text.downcase.scan(/[a-z]{4,}/) - META_WORDS).size
+          #  end
+          #end
+          #
           ## .. then count the tags
           #
-          inner_tags = el.inner_html.scan(/\<\w.*?\>/).size
-          if word_count < inner_tags && inner_tags > 3 && word_count < 250
-            puts "At #{el.name} #{el['id']} #{el['class']} containing '#{el.text[0..20]}' we have #{word_count} valid words to #{el.inner_html.scan(/\<\w.*?\>/).size} tags"
-            puts "Removing #{el.name} #{el['id']} #{el['class']} TOO MANY TAGS FOR WORDS"
-            el.remove
-            next
-          end
+          #inner_tags = el.inner_html.scan(/\<\w.*?\>/).size
+          #if word_count < inner_tags && inner_tags > 3 && word_count < 250
+          #  puts "At #{el.name} #{el['id']} #{el['class']} containing '#{el.text[0..20]}' we have #{word_count} valid words to #{el.inner_html.scan(/\<\w.*?\>/).size} tags"
+          #  #puts "Removing #{el.name} #{el['id']} #{el['class']} TOO MANY TAGS FOR WORDS"
+          #  el.remove
+          #  next
+          #end
 
           # If there are at least 2 words and a third of them are "meta words," remove the element
-          inner_words = el.text.to_s.downcase.scan(/[a-z]{3,}/)
-          if BLOCK_OUTPUT_ELEMENTS.include?(el.name) && inner_words.size >= 2
-            if ((inner_words & META_WORDS).size >= (inner_words.size / 3))
-              el.remove
-            end
-          end
+          #inner_words = el.text.to_s.downcase.scan(/[a-z]{3,}/)
+          #if BLOCK_OUTPUT_ELEMENTS.include?(el.name) && inner_words.size >= 2
+          #  if ((inner_words & META_WORDS).size >= (inner_words.size / 3))
+          #    el.remove
+          #  end
+          #end
 
           if el.text && el.text.strip.length < 3 && !%w{img}.include?(el.name) && el.inner_html !~ /\<img/
             el.remove
